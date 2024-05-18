@@ -23,6 +23,7 @@ M_3year = [ 65.54, 22.15, 2.32, 0.32, 0.26, 0.08, 0.11, 0.13, 9.08;
             0, 0, 0.11, 0.5, 1.51, 16.52, 9.73, 42.29, 29.35
            ];
 
+
 M_5year = [ 49.52, 28.83, 4.75, 0.8, 0.34, 0.16, 0.08, 0.34, 15.17;
             1.37, 52.56, 23.97, 3.38, 0.53, 0.35, 0.04,  0.3, 17.49;
             0.06, 4.7, 57.8, 14.39, 1.8, 0.6, 0.13, 0.46, 20.05;
@@ -31,14 +32,96 @@ M_5year = [ 49.52, 28.83, 4.75, 0.8, 0.34, 0.16, 0.08, 0.34, 15.17;
             0.01, 0.02, 0.2, 1.26, 9.59, 25.75,  3.21, 17.4, 42.56;
             0, 0, 0.09, 0.68, 2.49, 12.34, 2.7, 46.35,  35.35
            ];
+
 %Nella 7 anni manca la riga della CCC
-M_7year = [ 38,  32.66, 6.79, 1.47, 0.35, 0.19, 0.11, 0.51, 19.93;
-            1.43, 41.59, 27.29, 4.51, 0.7, 0.35, 0.03, 0.51, 23.58;
-            0.06, 5.11, 48.48, 16.13, 2.28, 0.73, 0.12, 0.8, 26.28;
-            0.03, 0.49, 11.01, 45.08, 7.33, 2.12, 0.34, 2.41, 31.19;
-            0, 0.08, 1.2, 12.56, 24.71, 9.97, 0.94, 9.46, 41.07;
-            0, 0.02, 0.26, 1.75, 8.55, 17.07, 1.84, 21.48, 49.03
-          ];
+%M_7year = [ 38,  32.66, 6.79, 1.47, 0.35, 0.19, 0.11, 0.51, 19.93;
+%            1.43, 41.59, 27.29, 4.51, 0.7, 0.35, 0.03, 0.51, 23.58;
+%            0.06, 5.11, 48.48, 16.13, 2.28, 0.73, 0.12, 0.8, 26.28;
+%            0.03, 0.49, 11.01, 45.08, 7.33, 2.12, 0.34, 2.41, 31.19;
+%            0, 0.08, 1.2, 12.56, 24.71, 9.97, 0.94, 9.46, 41.07;
+%            0, 0.02, 0.26, 1.75, 8.55, 17.07, 1.84, 21.48, 49.03
+%          ];
+%% Remove NR
+%Remove NR and distribute the value uniformly on the row 
+  M_1year = removeNR(M_1year);
+  M_3year = removeNR(M_3year);
+  M_5year = removeNR(M_5year);
+
+%Add a row with all zeros except for the last element that is 1
+M_1year = [M_1year; zeros(1,8)];
+M_1year(end) = 1;
+M_3year = [M_3year; zeros(1,8)];
+M_3year(end) = 1;
+M_5year = [M_5year; zeros(1,8)];
+M_5year(end) = 1;
+
+%Normalize the matrix
+M_1year = M_1year./sum(M_1year,2);
+M_3year = M_3year./sum(M_3year,2);
+M_5year = M_5year./sum(M_5year,2);
+
+%Analysis of the Eigenvalues of the transition matrix
+%1 year
+[V_1year,D_1year] = eig(M_1year);
+%3 year
+[V_3year,D_3year] = eig(M_3year);
+%5 year
+[V_5year,D_5year] = eig(M_5year);
+
+%We have to sort the eigenvalues and the eigenvectors
+[D_1year,ind_1year] = sort(diag(D_1year),'descend');
+V_1year = V_1year(:,ind_1year);
+%remove the complex part
+D_1year = real(D_1year);
+V_1year = real(V_1year);
+%Remove eigenvalues and eigenvectors that are equal
+D_1year= unique(D_1year, 'stable');
+V_1year = V_1year'; 
+V_1year = unique(V_1year, 'rows', 'stable');
+V_1year = V_1year';
+
+[D_3year,ind_3year] = sort(diag(D_3year),'descend');
+V_3year = V_3year(:,ind_3year);
+%remove the complex part
+D_3year = real(D_3year);
+V_3year = real(V_3year);
+%Remove eigenvalues and eigenvectors that are equal
+D_3year= unique(D_3year, 'stable');
+V_3year = V_3year';
+V_3year = unique(V_3year, 'rows', 'stable');
+V_3year = V_3year';
+
+[D_5year,ind_5year] = sort(diag(D_5year),'descend');
+V_5year = V_5year(:,ind_5year);
+%remove the complex part
+D_5year = real(D_5year);
+V_5year = real(V_5year);
+%Remove eigenvalues and eigenvectors that are equal
+D_5year= unique(D_5year, 'stable');
+V_5year = V_5year';
+V_5year = unique(V_5year, 'rows', 'stable');
+V_5year = V_5year';
+
+eigTime = eigTimeHorizon (D_1year, D_3year, D_5year, 4);
+
+%Plot the natural logarithm of eigenvalues with respect to the time horizon
+figure
+plot([1,3,5],log(eigTime(2, :)),'-o','DisplayName','Second Eigenvalue')
+hold on
+plot([1,3,5],log(eigTime(3, :)),'-square','DisplayName','Third Eigenvalue')
+plot([1,3,5],log(eigTime(4, :)),'-diamond','DisplayName','Fourth Eigenvalue')
+xlabel('Time Horizon')
+ylabel('Logarithm of Eigenvalues')
+title('Eigenvalues with respect to the Time Horizon')
+legend('show', 'Location', 'best')
+grid on
+
+% Plot the second eigenvectors
+figure
+plot(V_1year(1:end-1,2),'-o','DisplayName','1 year')
+ hold on
+plot(V_3year(:,2),'-square','DisplayName','3 year')
+plot(V_5year(:,2),'-diamond','DisplayName','5 year')
 %% Data exercise 2
 Me =  [ 98.21, 1.66, 0.11, 0.02, 0.02, 0, 0, 0;
         0.15, 98.08, 1.61, 0.12, 0.01, 0.03, 0.01, 0;
