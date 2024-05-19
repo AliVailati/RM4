@@ -41,13 +41,15 @@ M_5year = [ 49.52, 28.83, 4.75, 0.8, 0.34, 0.16, 0.08, 0.34, 15.17;
 %            0, 0.08, 1.2, 12.56, 24.71, 9.97, 0.94, 9.46, 41.07;
 %            0, 0.02, 0.26, 1.75, 8.55, 17.07, 1.84, 21.48, 49.03
 %          ];
+
 %% Remove NR
-%Remove NR and distribute the value uniformly on the row 
+%Remove NR and distribute the value uniformly on the rows 
   M_1year = removeNR(M_1year);
   M_3year = removeNR(M_3year);
   M_5year = removeNR(M_5year);
 
 %Add a row with all zeros except for the last element that is 1
+%this row represents the absorbing state of default
 M_1year = [M_1year; zeros(1,8)];
 M_1year(end) = 1;
 M_3year = [M_3year; zeros(1,8)];
@@ -59,7 +61,7 @@ M_5year(end) = 1;
 M_1year = M_1year./sum(M_1year,2);
 M_3year = M_3year./sum(M_3year,2);
 M_5year = M_5year./sum(M_5year,2);
-
+%%
 %Analysis of the Eigenvalues of the transition matrix
 %1 year
 [V_1year,D_1year] = eig(M_1year);
@@ -71,37 +73,14 @@ M_5year = M_5year./sum(M_5year,2);
 %We have to sort the eigenvalues and the eigenvectors
 [D_1year,ind_1year] = sort(diag(D_1year),'descend');
 V_1year = V_1year(:,ind_1year);
-%remove the complex part
-D_1year = real(D_1year);
-V_1year = real(V_1year);
-%Remove eigenvalues and eigenvectors that are equal
-D_1year= unique(D_1year, 'stable');
-V_1year = V_1year'; 
-V_1year = unique(V_1year, 'rows', 'stable');
-V_1year = V_1year';
 
 [D_3year,ind_3year] = sort(diag(D_3year),'descend');
 V_3year = V_3year(:,ind_3year);
-%remove the complex part
-D_3year = real(D_3year);
-V_3year = real(V_3year);
-%Remove eigenvalues and eigenvectors that are equal
-D_3year= unique(D_3year, 'stable');
-V_3year = V_3year';
-V_3year = unique(V_3year, 'rows', 'stable');
-V_3year = V_3year';
 
 [D_5year,ind_5year] = sort(diag(D_5year),'descend');
 V_5year = V_5year(:,ind_5year);
-%remove the complex part
-D_5year = real(D_5year);
-V_5year = real(V_5year);
-%Remove eigenvalues and eigenvectors that are equal
-D_5year= unique(D_5year, 'stable');
-V_5year = V_5year';
-V_5year = unique(V_5year, 'rows', 'stable');
-V_5year = V_5year';
 
+%extract, grouped by years, the first n eigenvalues for each matrix
 eigTime = eigTimeHorizon (D_1year, D_3year, D_5year, 4);
 
 %Plot the natural logarithm of eigenvalues with respect to the time horizon
