@@ -28,11 +28,11 @@ load('M_5year.mat');
 %Add a row with all zeros except for the last element that is 1
 %this row represents the absorbing state of default
 M_1year = [M_1year; zeros(1,8)];
-M_1year(end) = 1;
+M_1year(end) = 100;
 M_3year = [M_3year; zeros(1,8)];
-M_3year(end) = 1;
+M_3year(end) = 100;
 M_5year = [M_5year; zeros(1,8)];
-M_5year(end) = 1;
+M_5year(end) = 100;
 
 %Normalize the matrix
 M_1year = M_1year./sum(M_1year,2);
