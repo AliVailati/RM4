@@ -1,5 +1,5 @@
 %Final Project - RM4
-%Alice Vailati, Davide Cazzaro
+%Group B - Alice Vailati, Davide Cazzaro
 clear all 
 close all 
 clc
@@ -35,10 +35,10 @@ M_7year = [ 38,  32.66, 6.79, 1.47, 0.35, 0.19, 0.11, 0.51, 19.93;
          ];
 M_7year = removeNR(M_7year);
 
-%Add a row of zeros in which we will add values later
+%Add a row of zeros in which we will add values later for row CCC
 M_7year = [M_7year; zeros(1,8)];
 
-%Add a row of zeros except for the default case equal to 1
+%Add a row of zeros except for the default case equal to 1 (default is an absorbing state)
 M_7year = [M_7year; zeros(1,8)];
 M_7year(end) = 100;
 
@@ -102,106 +102,31 @@ ylabel('Logarithm of Eigenvalues')
 title('Eigenvalues with respect to the Time Horizon')
 legend('show', 'Location', 'best')
 grid on
+%%
+%We want to consider the eigenvectors excluding the sign
+[V_1year, V_3year, V_5year, V_7year] = signEigenvectors(V_1year, V_3year, V_5year, V_7year);
 
-% Plot the eigenvectors
-figure 
-subplot(4, 2, 1)
-plot(V_1year(:,1),'-o','DisplayName','1 year')
- hold on
-plot(V_3year(:,1),'-square','DisplayName','3 year')
-plot(V_5year(:,1),'-diamond','DisplayName','5 year')
-grid on
-title ('First eigenvector')
-hold off
-
-subplot(4, 2, 2)
-plot(V_1year(:,2),'-o','DisplayName','1 year')
- hold on
-plot(V_3year(:,2),'-square','DisplayName','3 year')
-plot(V_5year(:,2),'-diamond','DisplayName','5 year')
-grid on
-title ('Second eigenvector')
-hold off
-
-subplot(4, 2, 3)
-plot(V_1year(:,3),'-o','DisplayName','1 year')
- hold on
-plot(V_3year(:,3),'-square','DisplayName','3 year')
-plot(V_5year(:,3),'-diamond','DisplayName','5 year')
-grid on
-title ('Third eigenvector')
-hold off
-
-subplot(4, 2, 4)
-plot(V_1year(:,4),'-o','DisplayName','1 year')
- hold on
-plot(V_3year(:,4),'-square','DisplayName','3 year')
-plot(V_5year(:,4),'-diamond','DisplayName','5 year')
-grid on
-title ('Fourth eigenvector')
-hold off
-
-subplot(4, 2, 5)
-plot(V_1year(:,5),'-o','DisplayName','1 year')
- hold on
-plot(V_3year(:,5),'-square','DisplayName','3 year')
-plot(V_5year(:,5),'-diamond','DisplayName','5 year')
-grid on
-title ('Fifth eigenvector')
-hold off
-
-subplot(4, 2, 6)
-plot(V_1year(:,6),'-o','DisplayName','1 year')
- hold on
-plot(V_3year(:,6),'-square','DisplayName','3 year')
-plot(V_5year(:,6),'-diamond','DisplayName','5 year')
-grid on
-title ('Sixth eigenvector')
-hold off
-
-subplot(4, 2, 7)
-plot(V_1year(:,7),'-o','DisplayName','1 year')
- hold on
-plot(V_3year(:,7),'-square','DisplayName','3 year')
-plot(V_5year(:,7),'-diamond','DisplayName','5 year')
-grid on
-title ('Seventh eigenvector')
-hold off
-
-subplot(4, 2, 8)
-plot(V_1year(:,8),'-o','DisplayName','1 year')
- hold on
-plot(V_3year(:,8),'-square','DisplayName','3 year')
-plot(V_5year(:,8),'-diamond','DisplayName','5 year')
-grid on
-title ('Eigth eigenvector')
-hold off
+% Plot the eigenvectors 
+for ii = 1:8
+    plotEigenvectors(V_1year, V_3year, V_5year, V_7year, ii); 
+end
 
 %% Data exercise 2
 load('M_contraction.mat'); 
 load('M_expansion.mat'); 
 load('issuers_contraction.mat'); 
 load('issuers_expansion.mat'); 
-
-%% es 2 MC SIMULATION
-M_unconditional = [49.52 28.83 4.75 0.80 0.34 0.16 0.08 0.34 15.17
-                    1.37 52.56 23.97 3.38 0.53 0.35 0.04 0.30 17.49
-                    0.06 4.70 57.80 14.39 1.80 0.60 0.13 0.46 20.05
-                    0.02 0.37 10.14 53.82 7.50 1.94 0.34 1.58 24.29
-                    0.01 0.07 0.86 12.27 33.54 11.15 1.15 6.51 34.45
-                    0.01 0.02 0.20 1.26 9.59 25.75 3.21 17.40 42.56
-                    0.00 0.00 0.09 0.68 2.49 12.34 2.70 46.35 35.35
-                    0 0 0 0 0 0 0 100 0 ]/100;
-M_unconditional = removeNR(M_unconditional);
-%regime switching matrix
-M_switch = [0.85, 0.15;
-            0.692, 0.308];
-
+load('M_unconditional.mat'); 
+load('M_switch.mat'); 
 steps_per_year = 4; % quarterly steps in a year
 total_years = 5;
-total_steps = steps_per_year * total_years;
 num_simulations = 100;
 num_ratings = 8;
+
+%% MC SIMULATION
+M_unconditional = removeNR(M_unconditional);
+
+total_steps = steps_per_year * total_years;
 state_paths = zeros(num_simulations, total_steps);
 
 rng(0);
@@ -209,28 +134,11 @@ rng(0);
 % Monte Carlo Simulation of State Paths
 for sim = 1:num_simulations
     %randomly starting in expansion or recession
-    current_state = randi([0, 1]); %expansion (0) or recession (1)
-    for step = 1:total_steps
-        if current_state == 0
-            if rand < M_switch(1, 1) %rand gives me int betw [0,1]
-                next_state = 0; % stay in expansion
-            else
-                next_state = 1; % switch to recession
-            end
-        else
-            if rand < M_switch(2, 1)
-                next_state = 0; % switch to expansion
-            else
-                next_state = 1; % stay in recession
-            end
-        end
-        state_paths(sim, step) = next_state;
-        current_state = next_state;
-    end
+    state_paths(sim, :) = createPath(total_steps, current_state)
 end
 
 %% Calculate the 5-year Transition Matrices -> 3d matrix
-transition_matrices = zeros(num_ratings, num_ratings, num_simulations); % i need a 3d matrix -> 3rd dim the simulations
+transition_matrices = zeros(num_ratings, num_ratings, num_simulations); % I need a 3d matrix -> 3rd dim the simulations
 for sim = 1:num_simulations
     transition_matrix = eye(num_ratings);
     for step = 1:total_steps
@@ -263,3 +171,50 @@ ylabel('Default Probability');
 grid on;
 legend('show');
 hold off;
+
+%% Exercise 3
+M = [87.09 9.05 0.53 0.05 0.11 0.03 0.05 0.00;
+     0.48 87.32 7.72 0.46 0.05 0.06 0.02 0.02; 
+     0.00 1.56 88.73 4.97 0.25 0.11 0.01 0.05; 
+     0.00 0.08 3.19 86.72 3.48 0.42 0.09 0.15; 
+     0.01 0.02 0.10 4.52 78.12 6.66 0.53 0.60; 
+     0.00 0.02 0.06 0.15 4.54 74.73 4.81 3.18; 
+     0.00 0.00 0.09 0.16 0.49 13.42 43.91 26.55;
+     0.00 0.00 0.00 0.00 0.00 0.00 0.00 100.00]/100;
+numRatings = size(M, 1);
+h = zeros(1, numRatings-1);
+cf_schedule = [1 0.015; 2 0.015; 3 0.015; 4 0.015; 5 101.5];
+zero_rate = 0.01;
+B = exp(-zero_rate * cf_schedule(:, 1));
+fwd_B = B(2:end) / B(1); %sono 4 
+Prob_surv = zeros(numRatings-1, length(cf_schedule));
+% calculate the hazard rate for every ratings
+for i = 1:numRatings-1
+    h(i) = -log(1 - M(i, end));
+end
+% calculate the survival prob for every ratings and until 5y
+for i = 1:numRatings-1
+    for t = 1:length(cf_schedule)
+        Prob_surv(i, t) = exp(-h(i) * cf_schedule(t, 1));
+    end
+end
+Prob_default = 1 - Prob_surv;
+FV = zeros(1, numRatings);
+Recovery = 0.25;
+
+for i = 1:numRatings-1
+    
+   FV(i) = Prob_surv(i,2:end)*(cf_schedule(2:end,2).*fwd_B) + ...
+           [Prob_surv(i,1:end-1) - Prob_surv(i,2:end)]*fwd_B*Recovery*100;
+end
+%Fair value conditional to be Default in 1 year
+    FV(end) = Recovery * 100;
+disp('Forward Values:');
+disp(FV);
+%now we have to make the expected values for the several FV
+E_FV = zeros(numRatings - 1,1);
+for i = 1:numRatings - 1
+E_FV(i) = sum(FV.*M(i,:));
+end
+disp('Expected Forward Values:');
+disp(E_FV');
