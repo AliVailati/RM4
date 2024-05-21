@@ -7,6 +7,10 @@ function M = removeNR(M_old)
     %Before removing NR, we have to evaluate if all the row of M_old sum to 100
     
     %Check if the sum of the rows is equal to 100
+    if size(M_old, 1) == size(M_old, 2)
+        %add a column for NR
+        M_old = [M_old, zeros(size(M_old, 1), 1)];
+    end
     if sum(sum(M_old, 2) == 100) ~= size(M_old, 1)
         for ii = 1:size(M_old, 1)
             if sum(M_old(ii, :)) ~= 100

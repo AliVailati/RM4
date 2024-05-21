@@ -123,8 +123,22 @@ total_years = 5;
 num_simulations = 100;
 num_ratings = 8;
 
+Me = [Me; zeros(1,8)];
+Me(end) = 100;
+Me = removeNR(Me);
+
+Mc = [Mc; zeros(1,8)];
+Mc(end) = 100;
+Mc = removeNR(Mc);
+
+%Normalize the matrix
+Me = Me./sum(Me,2);
+Mc = Mc./sum(Mc,2);
+
 %% MC SIMULATION
 M_unconditional = removeNR(M_unconditional);
+%Normalize the matrix
+M_unconditional = M_unconditional./sum(M_unconditional,2);
 
 total_steps = steps_per_year * total_years;
 state_paths = zeros(num_simulations, total_steps);
@@ -134,33 +148,34 @@ rng(0);
 % Monte Carlo Simulation of State Paths
 for sim = 1:num_simulations
     %randomly starting in expansion or recession
-    state_paths(sim, :) = createPath(total_steps, current_state)
+    state_paths(sim, :) = createPath(total_steps, M_switch);
 end
 
 %% Calculate the 5-year Transition Matrices -> 3d matrix
 transition_matrices = zeros(num_ratings, num_ratings, num_simulations); % I need a 3d matrix -> 3rd dim the simulations
+
+% Compute the Transition Matrices for each Simulation
 for sim = 1:num_simulations
-    transition_matrix = eye(num_ratings);
-    for step = 1:total_steps
-        if state_paths(sim, step) == 0
-            transition_matrix = transition_matrix * Me;
-        else
-            transition_matrix = transition_matrix * Mc;
-        end
-    end
-    transition_matrices(:, :, sim) = transition_matrix;
+    transition_matrices(:, :, sim) = computeTransitionMatrix(state_paths(sim, :), num_ratings, Me, Mc);
 end
 
 %% Compute the Average 5-year Transition Matrix
-avg_transition_matrix = mean(transition_matrices, 3);
-disp('Average 5-year Simulated Transition Matrix:');
-disp(avg_transition_matrix);
+M_avg = mean(transition_matrices, 3);
 
-%% Plot Results
-default_probs_simulated = avg_transition_matrix(:, end);
+disp('Average 5-year Simulated Transition Matrix:');
+disp(M_avg);
+
+%% MSE between simulated and unconditional 
+M_diff = M_unconditional-M_avg; 
+M_diff = M_diff.^2; 
+MSE = mean(M_diff(:)); 
+disp ('The MSE between the unconditional one and the simulated is:'); 
+disp(MSE); 
+%% Compare the Default Probabilities
+default_probs_simulated = M_avg(:, end);
 default_probs_unconditional = M_unconditional(:, end);
 
-% def prob
+% Plot the Default Probabilities
 figure;
 hold on;
 plot(1:num_ratings, default_probs_simulated, 'b-o', 'LineWidth', 2, 'DisplayName', 'Simulated');
