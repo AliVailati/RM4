@@ -3,6 +3,7 @@
 clear all 
 close all 
 clc
+tic
 
 %% Import Data for exercise 1
 addpath('Data'); 
@@ -188,19 +189,19 @@ legend('show');
 hold off;
 
 %% Exercise 3
-M = [87.09 9.05 0.53 0.05 0.11 0.03 0.05 0.00;
-     0.48 87.32 7.72 0.46 0.05 0.06 0.02 0.02; 
-     0.00 1.56 88.73 4.97 0.25 0.11 0.01 0.05; 
-     0.00 0.08 3.19 86.72 3.48 0.42 0.09 0.15; 
-     0.01 0.02 0.10 4.52 78.12 6.66 0.53 0.60; 
-     0.00 0.02 0.06 0.15 4.54 74.73 4.81 3.18; 
-     0.00 0.00 0.09 0.16 0.49 13.42 43.91 26.55;
-     0.00 0.00 0.00 0.00 0.00 0.00 0.00 100.00]/100;
+%Consider the one year unconditional matrix
+M = M_1year;
 numRatings = size(M, 1);
 h = zeros(1, numRatings-1);
-cf_schedule = [1 0.015; 2 0.015; 3 0.015; 4 0.015; 5 101.5];
+%Annual payment from year 1 to 5 
+coupon_times = [1 2 3 4 5]; 
+%coupons for the initial ratings 
+coupon_rates = [0.015, 0.0175, 0.025, 0.04, 0.06]; 
 zero_rate = 0.01;
+%first case: All issuers with initial rating A
+cf_schedule = coupons(coupon_times, coupon_rates(1));
 B = exp(-zero_rate * cf_schedule(:, 1));
+
 fwd_B = B(2:end) / B(1); %sono 4 
 Prob_surv = zeros(numRatings-1, length(cf_schedule));
 % calculate the hazard rate for every ratings
@@ -233,3 +234,6 @@ E_FV(i) = sum(FV.*M(i,:));
 end
 disp('Expected Forward Values:');
 disp(E_FV');
+
+
+toc 
