@@ -75,7 +75,7 @@ M_7year = M_7year./sum(M_7year,2);
 %7 year
 [V_7year,D_7year] = eig(M_7year);
 
-
+%%
 %We have to sort the eigenvalues and the eigenvectors
 [D_1year,ind_1year] = sort(diag(D_1year),'descend');
 V_1year = V_1year(:,ind_1year);
@@ -104,7 +104,7 @@ title('Eigenvalues with respect to the Time Horizon')
 legend('show', 'Location', 'best')
 grid on
 %%
-%We want to consider the eigenvectors excluding the sign
+%We want to consider the eigenvectors excluding the sign -> all positives
 [V_1year, V_3year, V_5year, V_7year] = signEigenvectors(V_1year, V_3year, V_5year, V_7year);
 
 % Plot the eigenvectors 
@@ -121,7 +121,7 @@ load('M_unconditional.mat');
 load('M_switch.mat'); 
 steps_per_year = 4; % quarterly steps in a year
 total_years = 5;
-num_simulations = 100;
+num_simulations = 10000;
 num_ratings = 8;
 
 Me = [Me; zeros(1,8)];
