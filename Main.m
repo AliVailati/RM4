@@ -179,52 +179,78 @@ default_probs_unconditional = M_unconditional(:, end);
 % Plot the Default Probabilities
 figure;
 hold on;
-plot(1:num_ratings, default_probs_simulated, 'b-o', 'LineWidth', 2, 'DisplayName', 'Simulated');
-plot(1:num_ratings, default_probs_unconditional, 'r-s', 'LineWidth', 2, 'DisplayName', 'Unconditional');
+plot(1:num_ratings, default_probs_simulated, 'b-o', 'LineWidth', 1.5, 'DisplayName', 'Simulated');
+plot(1:num_ratings, default_probs_unconditional, 'r-s', 'LineWidth', 1.5, 'DisplayName', 'Unconditional');
 title('Default Probabilities over 5 Years');
 xlabel('Rating Class');
 ylabel('Default Probability');
 grid on;
-legend('show');
+legend('show', 'Location', 'best');
 hold off;
+
+
+%% 
 
 %% Exercise 3
 %Consider the one year unconditional matrix
 M = M_1year;
 numRatings = size(M, 1);
-h = zeros(1, numRatings-1);
 %Annual payment from year 1 to 5 
 coupon_times = [1 2 3 4 5]; 
 %coupons for the initial ratings 
 coupon_rates = [0.015, 0.0175, 0.025, 0.04, 0.06]; 
 zero_rate = 0.01;
-%first case: All issuers with initial rating A
-cf_schedule = coupons(coupon_times, coupon_rates(1));
-B = exp(-zero_rate * cf_schedule(:, 1));
+%% Consider all the 5 portfolios -> 5 issuers, cf_schedule is a matrix 5x6
+cf_schedule = coupons(coupon_times, coupon_rates);
 
-fwd_B = B(2:end) / B(1); %sono 4 
-Prob_surv = zeros(numRatings-1, length(cf_schedule));
-% calculate the hazard rate for every ratings
+%calculate the discount factor for every year
+B = exp(-zero_rate * cf_schedule(:, 1));
+fwd_B = B(2:end) / B(1);
+%%
+h = -log(1 - M(1:end-1, end));
+cf_schedule = cf_schedule'; 
+%%
+A = cf_schedule'; 
+% calculate the survival prob for every ratings and until 5y
+probSurv = exp(-h*cf_schedule(1, :));
+
+probDefault = 1 - probSurv;
+Recovery = 0.25;
+size(probSurv(3:end, 2:end))
+size(A(2:end, 1))
+size(fwd_B)
+FV = calculate_forward_values2(probSurv, A ,Recovery, fwd_B);
+%% 
+N_issuer = 100;
+numRatings = size(M, 1);
+cf_schedule_A = [1 0.015; 2 0.015; 3 0.015; 4 0.015; 5 1.015];
+cf_schedule_BBB = [1 0.0175; 2 0.0175; 3 0.0175; 4 0.0175; 5 1.0175];
+cf_schedule_BB = [1 0.025; 2 0.025; 3 0.025; 4 0.025; 5 1.025];
+cf_schedule_B = [1 0.04; 2 0.04; 3 0.04; 4 0.04; 5 1.04];
+cf_schedule_CCC = [1 0.06; 2 0.06; 3 0.06; 4 0.06; 5 1.06];
+
+h = zeros(1, numRatings-1);
+Prob_surv = zeros(numRatings-1, length(cf_schedule_A));
 for i = 1:numRatings-1
     h(i) = -log(1 - M(i, end));
 end
-% calculate the survival prob for every ratings and until 5y
-for i = 1:numRatings-1
-    for t = 1:length(cf_schedule)
-        Prob_surv(i, t) = exp(-h(i) * cf_schedule(t, 1));
-    end
-end
-Prob_default = 1 - Prob_surv;
-FV = zeros(1, numRatings);
-Recovery = 0.25;
 
 for i = 1:numRatings-1
-    
-   FV(i) = Prob_surv(i,2:end)*(cf_schedule(2:end,2).*fwd_B) + ...
-           [Prob_surv(i,1:end-1) - Prob_surv(i,2:end)]*fwd_B*Recovery*100;
+    for t = 1:length(cf_schedule_A)
+        Prob_surv(i, t) = exp(-h(i) * cf_schedule_A(t, 1));
+    end
 end
-%Fair value conditional to be Default in 1 year
-    FV(end) = Recovery * 100;
+zero_rate = 0.01;
+Recovery = 0.25;
+
+FV_A = calculate_forward_values(Prob_surv, cf_schedule_A,Recovery); %Fv with coupns 1.5% sono 7 vaolri perche sono i valori di essere tra un anno in AAA, AA,....,CCC
+FV_BBB = calculate_forward_values(Prob_surv, cf_schedule_BBB,Recovery);
+FV_BB = calculate_forward_values(Prob_surv, cf_schedule_BB,Recovery);
+FV_B = calculate_forward_values(Prob_surv, cf_schedule_B,Recovery);
+FV_CCC = calculate_forward_values(Prob_surv, cf_schedule_CCC,Recovery);
+
+%% Fair value conditional to be Default in 1 year
+    FV(end) = Recovery;
 disp('Forward Values:');
 disp(FV);
 %now we have to make the expected values for the several FV
@@ -235,5 +261,120 @@ end
 disp('Expected Forward Values:');
 disp(E_FV');
 
+%questi sono i PV at today di un bond AAA,AA,A,ecc...
+%% 
+% calculate the treshold for every rating class
+ barriers = zeros(numRatings - 1, numRatings);
+cumulativeProb = 0;
+for i = 1:numRatings - 1 %righe
+    cumulativeProb = 0;
+    for j = 1:numRatings % colonne
+        cumulativeProb = cumulativeProb + M(i,numRatings - j + 1); %devo andare al contrario -> vedere grafico avr
+        barriers(i,j) = norminv(cumulativeProb);
+    end
+end 
+disp('Barriers:');
+disp(barriers);
+  
+%calculation of the Loss for every case
+Loss_matrix = zeros(numRatings - 1,numRatings);
+for i = 1:numRatings - 1
+    for j = 1:numRatings
+        Loss_matrix(i,j) = (FV(numRatings - j + 1) - E_FV(i)) / N_issuer; %in verita dovrebbero essere i returns
+    end
+end
+disp('Loss:');
+disp(Loss_matrix);
+%prima  se vado in def via via a crescere
 
+
+
+
+
+%% Monte Carlo Simulation of AVRs
+N_sim = 1000;
+rho = zeros(1, 8);
+for i = 1:8
+    rho(i) = rho_R(M, i);
+end
+%devo fare una matrice 3d per poter tenere conto di tutte le varie
+%simulazioni
+AVR_scenario = zeros(numRatings - 1, numRatings, N_sim);
+
+for i = 1:numRatings - 1 %riempio le righe
+    Y = randn(N_sim, 1); % Simulo il common factor una sola volta per rating class; giusto?
+    for j = 1:N_sim %tridimensionalità
+        for i = 1:N_issuer
+            epsilon = randn; % simulo ogni volta -> è rischio idiosincratico
+            V = rho(i) * Y(j) + sqrt(1 - rho(i)^2) * epsilon;
+            for k = 1:numRatings %riempio le colonne
+                if k == 1
+                    if V <= barriers(i, k) %guardo default
+                        AVR_scenario(i, k, j) = AVR_scenario(i, k, j) + 1;
+                        break;
+                    end
+                else
+                    if V <= barriers(i, k) && V > barriers(i, k-1)
+                        AVR_scenario(i, k, j) = AVR_scenario(i, k, j) + 1;
+                        break;
+                    end
+                end
+            end
+        end
+    end
+end
+
+
+%% Calculate the transition matrix from the simulation
+M_simulated = zeros(numRatings - 1, numRatings);
+for i = 1:numRatings - 1
+    for j = 1:numRatings
+        M_simulated(i, j) = mean(AVR_scenario(i, j, :)) / N_issuer;
+    end
+end
+
+disp('Simulated transition matrix:');
+disp(fliplr(M_simulated)); %inverto l'ordine degli elementi di ogni riga cosi confronto meglio
+disp('Original M matrix:');
+disp(M);
+
+%% Calculate VaR at 99%
+total_losses = zeros(N_sim, numRatings - 1);%AAA AA A BBB BB B CCC 
+for i = 1:numRatings - 1 %colonne
+    for j = 1:N_sim
+        total_loss = 0;
+        for k = 1:numRatings %serve per usare AVR_scenario
+            total_loss = total_loss + AVR_scenario(i, k, j) * Loss_matrix(i, k);
+        end
+        total_losses(j, i) = total_loss;
+    end
+end
+
+VaR_99 = zeros(numRatings - 1, 1);
+for i = 1:numRatings - 1
+    VaR_99(i) = quantile(total_losses(:, i), 0.99);
+end
+
+disp('99% Value at Risk (VaR) for each rating class:');
+disp(VaR_99);
+
+%% Plot the PDF of total losses for each rating class
+% Define the rating class names
+ratingClassNames = {'AAA', 'AA', 'A', 'BBB', 'BB', 'B', 'CCC'};
+
+% Plot the PDF of total losses for each rating class
+figure;
+hold on;
+colors = lines(numRatings - 1);
+for r = 1:numRatings - 1
+    [f, xi] = ksdensity(total_losses(:, r));
+    plot(xi, f, 'Color', colors(r, :), 'DisplayName', ratingClassNames{r});
+end
+title('PDF of Total Losses for Different Rating Classes');
+xlabel('Total Loss');
+ylabel('Density');
+legend show;
+hold off;
+
+%interessante vedere come cambia rispetto alle varie rating class!
 toc 
