@@ -1,8 +1,9 @@
 function state_paths = createPath(total_steps, M_switch)
     %INPUT : 
-    %total_steps = number of steps that we have to consider
-    %M_switch = matrix of switching state 
-    %OUTPUT = vector of path
+    %        total_steps = number of steps that we have to consider
+    %        M_switch = matrix of switching state 
+    %OUTPUT 
+    %        state_pahs = vector of path
 
     state_paths = zeros(total_steps, 1); 
     state_paths(1) = randi([0, 1]); %expansion (0) or recession (1)

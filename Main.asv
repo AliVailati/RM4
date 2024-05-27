@@ -70,7 +70,7 @@ M_7year = M_7year./sum(M_7year,2);
 %7 year
 [V_7year,D_7year] = eig(M_7year);
 
-%% Eigenvalues
+%%
 %We have to sort the eigenvalues and the eigenvectors
 [D_1year,ind_1year] = sort(diag(D_1year),'descend');
 V_1year = V_1year(:,ind_1year);
@@ -98,7 +98,9 @@ ylabel('Logarithm of Eigenvalues')
 title('Eigenvalues with respect to the Time Horizon')
 legend('show', 'Location', 'best')
 grid on
-%% Change sign to eigenvectors
+%% 
+%We want to consider the eigenvectors all starting from a positive value in
+%order to make them comparable 
 [V_1year, V_3year, V_5year, V_7year] = signEigenvectors(V_1year, V_3year, V_5year, V_7year);
 
 % Plot the eigenvectors 
@@ -120,7 +122,6 @@ num_simulations = 10000;
 num_ratings = 8;
 
 %% Add row for default and remove NR 
-%In this case removeNR is useful to have all the row summing up to 100
 Me = [Me; zeros(1,8)];
 Me(end) = 100;
 Me = removeNR(Me);
@@ -131,7 +132,7 @@ Mc = removeNR(Mc);
 
 M_unconditional = removeNR(M_unconditional);
 
-%Normalize the matrices
+%Normalize the matrix
 Me = Me./sum(Me,2);
 Mc = Mc./sum(Mc,2);
 M_unconditional = M_unconditional./sum(M_unconditional,2);
@@ -168,7 +169,6 @@ M_diff = M_diff.^2;
 MSE = mean(M_diff(:)); 
 disp ('The MSE between the unconditional one and the simulated is:'); 
 disp(MSE); 
-
 %% Compare the Default Probabilities
 default_probs_simulated = M_avg(:, end);
 default_probs_unconditional = M_unconditional(:, end);
