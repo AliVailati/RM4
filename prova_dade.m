@@ -35,11 +35,11 @@ zero_rate = 0.01;
 Recovery = 0.25;
 
 %% calculate FV for the different coupons i have
-FV_A = calculate_forward_values(Prob_surv, cf_schedule_A,Recovery); %Fv with coupns 1.5% sono 7 vaolri perche sono i valori di essere tra un anno in AAA, AA,....,CCC
-FV_BBB = calculate_forward_values(Prob_surv, cf_schedule_BBB,Recovery);
-FV_BB = calculate_forward_values(Prob_surv, cf_schedule_BB,Recovery);
-FV_B = calculate_forward_values(Prob_surv, cf_schedule_B,Recovery);
-FV_CCC = calculate_forward_values(Prob_surv, cf_schedule_CCC,Recovery);
+FV_A = calculate_forward_values_dade(Prob_surv, cf_schedule_A,Recovery); %Fv with coupns 1.5% sono 7 vaolri perche sono i valori di essere tra un anno in AAA, AA,....,CCC
+FV_BBB = calculate_forward_values_dade(Prob_surv, cf_schedule_BBB,Recovery);
+FV_BB = calculate_forward_values_dade(Prob_surv, cf_schedule_BB,Recovery);
+FV_B = calculate_forward_values_dade(Prob_surv, cf_schedule_B,Recovery);
+FV_CCC = calculate_forward_values_dade(Prob_surv, cf_schedule_CCC,Recovery);
 
 disp('Forward Values:');
 disp(['A: ', num2str(FV_A)]);

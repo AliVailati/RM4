@@ -59,6 +59,8 @@ M_7year(7, 1:end-1) = M_7year(7, 1:end-1) + diff*weights;
 
 %Normalize the matrix
 M_7year = M_7year./sum(M_7year,2);
+
+clear diff weights
 %%
 %Analysis of the Eigenvalues of the transition matrix
 %1 year
@@ -98,6 +100,8 @@ ylabel('Logarithm of Eigenvalues')
 title('Eigenvalues with respect to the Time Horizon')
 legend('show', 'Location', 'best')
 grid on
+
+clear ind_1year ind_3year ind_5year ind_7year
 %% Change sign to eigenvectors
 [V_1year, V_3year, V_5year, V_7year] = signEigenvectors(V_1year, V_3year, V_5year, V_7year);
 
@@ -106,6 +110,7 @@ for ii = 1:8
     plotEigenvectors(V_1year, V_3year, V_5year, V_7year, ii); 
 end
 
+clear ii
 %% EXERCISE 2 -> Import Data and functions
 addpath('Function_ex2');
 load('Mc.mat'); 
@@ -156,6 +161,7 @@ for sim = 1:num_simulations
     transition_matrices(:, :, sim) = computeTransitionMatrix(state_paths(sim, :), num_ratings, Me, Mc);
 end
 
+clear sim
 %% Compute the Average 5-year Transition Matrix
 M_avg = mean(transition_matrices, 3);
 
@@ -169,6 +175,7 @@ MSE = mean(M_diff(:));
 disp ('The MSE between the unconditional one and the simulated is:'); 
 disp(MSE); 
 
+clear M_diff
 %% Compare the Default Probabilities
 default_probs_simulated = M_avg(:, end);
 default_probs_unconditional = M_unconditional(:, end);
@@ -185,73 +192,78 @@ grid on;
 legend('show', 'Location', 'best');
 hold off;
 
-%% Exercise 3
+%% Exercise 3 -> Import data and functions
+load('coupon_rates.mat');
 %Consider the one year unconditional matrix
 M = M_1year;
-numRatings = size(M, 1);
 %Annual payment from year 1 to 5 
 coupon_times = [1 2 3 4 5]; 
 %coupons for the initial ratings 
-coupon_rates = [0.015, 0.0175, 0.025, 0.04, 0.06]; 
 zero_rate = 0.01;
+Recovery = 0.25; 
+N_issuers = 100; 
 %% Consider all the 5 portfolios -> 5 issuers, cf_schedule is a matrix 5x6
 cf_schedule = coupons(coupon_times, coupon_rates);
 
-%calculate the discount factor for every year
+%calculate the discount factor for each year
 B = exp(-zero_rate * cf_schedule(:, 1));
 fwd_B = B(2:end) / B(1);
-%%
+
+%hazard rate 
 h = -log(1 - M(1:end-1, end));
-cf_schedule = cf_schedule'; 
-%%
-A = cf_schedule'; 
+
 % calculate the survival prob for every ratings and until 5y
-probSurv = exp(-h*cf_schedule(1, :));
-
+probSurv = exp(-h*coupon_times);
 probDefault = 1 - probSurv;
-Recovery = 0.25;
 
-FV = calculate_forward_values2(probSurv, A ,Recovery, fwd_B);
-%% 
-N_issuer = 100;
-numRatings = size(M, 1);
-cf_schedule_A = [1 0.015; 2 0.015; 3 0.015; 4 0.015; 5 1.015];
-cf_schedule_BBB = [1 0.0175; 2 0.0175; 3 0.0175; 4 0.0175; 5 1.0175];
-cf_schedule_BB = [1 0.025; 2 0.025; 3 0.025; 4 0.025; 5 1.025];
-cf_schedule_B = [1 0.04; 2 0.04; 3 0.04; 4 0.04; 5 1.04];
-cf_schedule_CCC = [1 0.06; 2 0.06; 3 0.06; 4 0.06; 5 1.06];
+%calculate the forward value 
+%FV = calculate_forward_values(probSurv, cf_schedule ,Recovery, fwd_B);
+FV(1) = calculate_forward_values(probSurv, cf_schedule ,Recovery, fwd_B);
+FV(2) = calculate_forward_values(probSurv, cf_schedule ,Recovery, fwd_B);
+FV(3) = calculate_forward_values(probSurv, cf_schedule ,Recovery, fwd_B);
+FV(4) = calculate_forward_values(probSurv, cf_schedule ,Recovery, fwd_B);
+FV = calculate_forward_values(probSurv, cf_schedule ,Recovery, fwd_B);
+%FV_transpose = FV'; 
+% Assume FV_transpose is defined and is a 2D matrix
+% Define the column width for alignment
+columnWidth = 8; 
 
-h = zeros(1, numRatings-1);
-Prob_surv = zeros(numRatings-1, length(cf_schedule_A));
-for i = 1:numRatings-1
-    h(i) = -log(1 - M(i, end));
-end
-
-for i = 1:numRatings-1
-    for t = 1:length(cf_schedule_A)
-        Prob_surv(i, t) = exp(-h(i) * cf_schedule_A(t, 1));
-    end
-end
-zero_rate = 0.01;
-Recovery = 0.25;
-
-FV_A = calculate_forward_values(Prob_surv, cf_schedule_A,Recovery); %Fv with coupns 1.5% sono 7 vaolri perche sono i valori di essere tra un anno in AAA, AA,....,CCC
-FV_BBB = calculate_forward_values(Prob_surv, cf_schedule_BBB,Recovery);
-FV_BB = calculate_forward_values(Prob_surv, cf_schedule_BB,Recovery);
-FV_B = calculate_forward_values(Prob_surv, cf_schedule_B,Recovery);
-FV_CCC = calculate_forward_values(Prob_surv, cf_schedule_CCC,Recovery);
+% Display the forward values
+fprintf('Forward Values:\n');
+% Print the header row with years
+header = ['     ', repmat(['%', num2str(columnWidth), 's '], 1, size(FV_transpose, 2))];
+fprintf(header, '1 year', '2 year', '3 year', '4 year', '5 year');
+fprintf('\n');
+%fprintf(['AAA:   ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(FV_transpose, 2)), '\n'], FV_transpose(1, :));
+%fprintf(['AA:   ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(FV_transpose, 2)), '\n'], FV_transpose(2, :));
+fprintf(['A:   ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(FV_transpose, 2)), '\n'], FV_transpose(1, :));
+fprintf(['BBB: ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(FV_transpose, 2)), '\n'], FV_transpose(2, :));
+fprintf(['BB:  ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(FV_transpose, 2)), '\n'], FV_transpose(3, :));
+fprintf(['B:   ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(FV_transpose, 2)), '\n'], FV_transpose(4, :));
+fprintf(['CCC: ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(FV_transpose, 2)), '\n'], FV_transpose(5, :));
 
 %% Fair value conditional to be Default in 1 year
-    %FV(end) = Recovery;
-%disp('Forward Values:');
-%disp(FV);
-%now we have to make the expected values for the several FV
-E_FV = zeros(numRatings - 1,1);
-for i = 1:numRatings - 1
-E_FV(i) = sum(FV.*M(i,:));
-end
-disp('Expected Forward Values:');
-disp(E_FV');
+
+E_FV = zeros(length(FV), 1);
+for i = 1 : length(FV)
+    E_FV(i) = sum(FV.*M(i+2,:));
+end 
+
+
+% Define the column width for alignment
+columnWidth = 8; 
+
+% Display the forward values
+fprintf('Forward Values:\n');
+% Print the header row with years
+header = ['     ', repmat(['%', num2str(columnWidth), 's '], 1, size(E_FV, 2))];
+fprintf(header, '1 year', '2 year', '3 year', '4 year', '5 year');
+fprintf('\n');
+fprintf(['A:   ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(E_FV, 2)), '\n'], E_FV(1, :));
+fprintf(['BBB: ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(E_FV, 2)), '\n'], E_FV(2, :));
+fprintf(['BB:  ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(E_FV, 2)), '\n'], E_FV(3, :));
+fprintf(['B:   ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(E_FV, 2)), '\n'], E_FV(4, :));
+fprintf(['CCC: ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(E_FV, 2)), '\n'], E_FV(5, :));
 
 %questi sono i PV at today di un bond AAA,AA,A,ecc...
 %% 
