@@ -193,6 +193,7 @@ legend('show', 'Location', 'best');
 hold off;
 
 %% Exercise 3 -> Import data and functions
+addpath('Function_ex3');
 load('coupon_rates.mat');
 %Consider the one year unconditional matrix
 M = M_1year;
@@ -250,119 +251,134 @@ fprintf(['B:   ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(E_FV, 1)),
 fprintf(['CCC: ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(E_FV, 1)), '\n'], E_FV(5));
 
 %questi sono i PV at today di un bond AAA,AA,A,ecc...
-%% 
-% calculate the treshold for every rating class
-barriers = zeros(numRatings - 1, numRatings);
-cumulativeProb = 0;
-for i = 1:numRatings - 1 %righe
-    cumulativeProb = 0;
-    for j = 1:numRatings % colonne
-        cumulativeProb = cumulativeProb + M(i,numRatings - j + 1); %devo andare al contrario -> vedere grafico avr
-        barriers(i,j) = norminv(cumulativeProb);
-    end
-end 
-disp('Barriers:');
-disp(barriers);
-  
-%calculation of the Loss for every case
-Loss_matrix = zeros(numRatings - 1,numRatings);
-for i = 1:numRatings - 1
-    for j = 1:numRatings
-        Loss_matrix(i,j) = (FV(numRatings - j + 1) - E_FV(i)) / N_issuer; %in verita dovrebbero essere i returns
-    end
-end
-disp('Loss:');
-disp(Loss_matrix);
-%prima  se vado in def via via a crescere
+%% Losses
+E_FV = E_FV'; 
+E_FV = E_FV*ones(1, 8); 
+Loss = -(FV-E_FV)/N_issuers;
 
+columnWidth = 8; 
 
-
-
-
-%% Monte Carlo Simulation of AVRs
-N_sim = 1000;
-rho = zeros(1, 8);
-for i = 1:8
-    rho(i) = rho_R(M, i);
-end
-%devo fare una matrice 3d per poter tenere conto di tutte le varie
-%simulazioni
-AVR_scenario = zeros(numRatings - 1, numRatings, N_sim);
-
-for i = 1:numRatings - 1 %riempio le righe
-    Y = randn(N_sim, 1); % Simulo il common factor una sola volta per rating class; giusto?
-    for j = 1:N_sim %tridimensionalità
-        for i = 1:N_issuer
-            epsilon = randn; % simulo ogni volta -> è rischio idiosincratico
-            V = rho(i) * Y(j) + sqrt(1 - rho(i)^2) * epsilon;
-            for k = 1:numRatings %riempio le colonne
-                if k == 1
-                    if V <= barriers(i, k) %guardo default
-                        AVR_scenario(i, k, j) = AVR_scenario(i, k, j) + 1;
-                        break;
-                    end
-                else
-                    if V <= barriers(i, k) && V > barriers(i, k-1)
-                        AVR_scenario(i, k, j) = AVR_scenario(i, k, j) + 1;
-                        break;
-                    end
-                end
-            end
-        end
-    end
-end
-
-
-%% Calculate the transition matrix from the simulation
-M_simulated = zeros(numRatings - 1, numRatings);
-for i = 1:numRatings - 1
-    for j = 1:numRatings
-        M_simulated(i, j) = mean(AVR_scenario(i, j, :)) / N_issuer;
-    end
-end
-
-disp('Simulated transition matrix:');
-disp(fliplr(M_simulated)); %inverto l'ordine degli elementi di ogni riga cosi confronto meglio
-disp('Original M matrix:');
-disp(M);
-
-%% Calculate VaR at 99%
-total_losses = zeros(N_sim, numRatings - 1);%AAA AA A BBB BB B CCC 
-for i = 1:numRatings - 1 %colonne
-    for j = 1:N_sim
-        total_loss = 0;
-        for k = 1:numRatings %serve per usare AVR_scenario
-            total_loss = total_loss + AVR_scenario(i, k, j) * Loss_matrix(i, k);
-        end
-        total_losses(j, i) = total_loss;
-    end
-end
-
-VaR_99 = zeros(numRatings - 1, 1);
-for i = 1:numRatings - 1
-    VaR_99(i) = quantile(total_losses(:, i), 0.99);
-end
-
-disp('99% Value at Risk (VaR) for each rating class:');
-disp(VaR_99);
-
-%% Plot the PDF of total losses for each rating class
-% Define the rating class names
-ratingClassNames = {'AAA', 'AA', 'A', 'BBB', 'BB', 'B', 'CCC'};
-
-% Plot the PDF of total losses for each rating class
-figure;
-hold on;
-colors = lines(numRatings - 1);
-for r = 1:numRatings - 1
-    [f, xi] = ksdensity(total_losses(:, r));
-    plot(xi, f, 'Color', colors(r, :), 'DisplayName', ratingClassNames{r});
-end
-title('PDF of Total Losses for Different Rating Classes');
-xlabel('Total Loss');
-ylabel('Density');
-legend show;
-hold off;
-
-%interessante vedere come cambia rispetto alle varie rating class!
-toc 
+% Display the forward values
+fprintf('Losses:\n');
+% Print the header row with years
+fprintf('\n');
+fprintf(['A:   ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(Loss, 2)), '\n'], Loss(1, :));
+fprintf(['BBB: ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(Loss, 2)), '\n'], Loss(2, :));
+fprintf(['BB:  ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(Loss, 2)), '\n'], Loss(3, :));
+fprintf(['B:   ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(Loss, 2)), '\n'], Loss(4, :));
+fprintf(['CCC: ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(Loss, 2)), '\n'], Loss(5, :));
+% % calculate the treshold for every rating class
+% barriers = zeros(numRatings - 1, numRatings);
+% cumulativeProb = 0;
+% for i = 1:numRatings - 1 %righe
+%     cumulativeProb = 0;
+%     for j = 1:numRatings % colonne
+%         cumulativeProb = cumulativeProb + M(i,numRatings - j + 1); %devo andare al contrario -> vedere grafico avr
+%         barriers(i,j) = norminv(cumulativeProb);
+%     end
+% end 
+% disp('Barriers:');
+% disp(barriers);
+% 
+% %calculation of the Loss for every case
+% Loss_matrix = zeros(numRatings - 1,numRatings);
+% for i = 1:numRatings - 1
+%     for j = 1:numRatings
+%         Loss_matrix(i,j) = (FV(numRatings - j + 1) - E_FV(i)) / N_issuer; %in verita dovrebbero essere i returns
+%     end
+% end
+% disp('Loss:');
+% disp(Loss_matrix);
+% %prima  se vado in def via via a crescere
+% 
+% 
+% 
+% 
+% 
+% %% Monte Carlo Simulation of AVRs
+% N_sim = 1000;
+% rho = zeros(1, 8);
+% for i = 1:8
+%     rho(i) = rho_R(M, i);
+% end
+% %devo fare una matrice 3d per poter tenere conto di tutte le varie
+% %simulazioni
+% AVR_scenario = zeros(numRatings - 1, numRatings, N_sim);
+% 
+% for i = 1:numRatings - 1 %riempio le righe
+%     Y = randn(N_sim, 1); % Simulo il common factor una sola volta per rating class; giusto?
+%     for j = 1:N_sim %tridimensionalità
+%         for i = 1:N_issuer
+%             epsilon = randn; % simulo ogni volta -> è rischio idiosincratico
+%             V = rho(i) * Y(j) + sqrt(1 - rho(i)^2) * epsilon;
+%             for k = 1:numRatings %riempio le colonne
+%                 if k == 1
+%                     if V <= barriers(i, k) %guardo default
+%                         AVR_scenario(i, k, j) = AVR_scenario(i, k, j) + 1;
+%                         break;
+%                     end
+%                 else
+%                     if V <= barriers(i, k) && V > barriers(i, k-1)
+%                         AVR_scenario(i, k, j) = AVR_scenario(i, k, j) + 1;
+%                         break;
+%                     end
+%                 end
+%             end
+%         end
+%     end
+% end
+% 
+% 
+% %% Calculate the transition matrix from the simulation
+% M_simulated = zeros(numRatings - 1, numRatings);
+% for i = 1:numRatings - 1
+%     for j = 1:numRatings
+%         M_simulated(i, j) = mean(AVR_scenario(i, j, :)) / N_issuer;
+%     end
+% end
+% 
+% disp('Simulated transition matrix:');
+% disp(fliplr(M_simulated)); %inverto l'ordine degli elementi di ogni riga cosi confronto meglio
+% disp('Original M matrix:');
+% disp(M);
+% 
+% %% Calculate VaR at 99%
+% total_losses = zeros(N_sim, numRatings - 1);%AAA AA A BBB BB B CCC 
+% for i = 1:numRatings - 1 %colonne
+%     for j = 1:N_sim
+%         total_loss = 0;
+%         for k = 1:numRatings %serve per usare AVR_scenario
+%             total_loss = total_loss + AVR_scenario(i, k, j) * Loss_matrix(i, k);
+%         end
+%         total_losses(j, i) = total_loss;
+%     end
+% end
+% 
+% VaR_99 = zeros(numRatings - 1, 1);
+% for i = 1:numRatings - 1
+%     VaR_99(i) = quantile(total_losses(:, i), 0.99);
+% end
+% 
+% disp('99% Value at Risk (VaR) for each rating class:');
+% disp(VaR_99);
+% 
+% %% Plot the PDF of total losses for each rating class
+% % Define the rating class names
+% ratingClassNames = {'AAA', 'AA', 'A', 'BBB', 'BB', 'B', 'CCC'};
+% 
+% % Plot the PDF of total losses for each rating class
+% figure;
+% hold on;
+% colors = lines(numRatings - 1);
+% for r = 1:numRatings - 1
+%     [f, xi] = ksdensity(total_losses(:, r));
+%     plot(xi, f, 'Color', colors(r, :), 'DisplayName', ratingClassNames{r});
+% end
+% title('PDF of Total Losses for Different Rating Classes');
+% xlabel('Total Loss');
+% ylabel('Density');
+% legend show;
+% hold off;
+% 
+% %interessante vedere come cambia rispetto alle varie rating class!
+% toc 
