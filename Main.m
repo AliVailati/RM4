@@ -202,6 +202,7 @@ coupon_times = [1 2 3 4 5];
 zero_rate = 0.01;
 Recovery = 0.25; 
 N_issuers = 100; 
+Notional = 1; 
 %% Consider all the 5 portfolios -> 5 issuers, cf_schedule is a matrix 5x6
 cf_schedule = coupons(coupon_times, coupon_rates);
 
@@ -215,40 +216,9 @@ h = -log(1 - M(1:end-1, end));
 % calculate the survival prob for every ratings and until 5y
 probSurv = exp(-h*coupon_times);
 probDefault = 1 - probSurv;
-
+%%
 %calculate the forward value 
-%FV = calculate_forward_values(probSurv, cf_schedule ,Recovery, fwd_B);
-FV(1) = calculate_forward_values(probSurv, cf_schedule ,Recovery, fwd_B);
-FV(2) = calculate_forward_values(probSurv, cf_schedule ,Recovery, fwd_B);
-FV(3) = calculate_forward_values(probSurv, cf_schedule ,Recovery, fwd_B);
-FV(4) = calculate_forward_values(probSurv, cf_schedule ,Recovery, fwd_B);
-FV = calculate_forward_values(probSurv, cf_schedule ,Recovery, fwd_B);
-%FV_transpose = FV'; 
-% Assume FV_transpose is defined and is a 2D matrix
-% Define the column width for alignment
-columnWidth = 8; 
-
-% Display the forward values
-fprintf('Forward Values:\n');
-% Print the header row with years
-header = ['     ', repmat(['%', num2str(columnWidth), 's '], 1, size(FV_transpose, 2))];
-fprintf(header, '1 year', '2 year', '3 year', '4 year', '5 year');
-fprintf('\n');
-%fprintf(['AAA:   ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(FV_transpose, 2)), '\n'], FV_transpose(1, :));
-%fprintf(['AA:   ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(FV_transpose, 2)), '\n'], FV_transpose(2, :));
-fprintf(['A:   ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(FV_transpose, 2)), '\n'], FV_transpose(1, :));
-fprintf(['BBB: ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(FV_transpose, 2)), '\n'], FV_transpose(2, :));
-fprintf(['BB:  ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(FV_transpose, 2)), '\n'], FV_transpose(3, :));
-fprintf(['B:   ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(FV_transpose, 2)), '\n'], FV_transpose(4, :));
-fprintf(['CCC: ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(FV_transpose, 2)), '\n'], FV_transpose(5, :));
-
-%% Fair value conditional to be Default in 1 year
-
-E_FV = zeros(length(FV), 1);
-for i = 1 : length(FV)
-    E_FV(i) = sum(FV.*M(i+2,:));
-end 
-
+[FV, E_FV] = calculate_forward_values(probSurv, cf_schedule ,Recovery, fwd_B, Notional, M);
 
 % Define the column width for alignment
 columnWidth = 8; 
@@ -256,19 +226,33 @@ columnWidth = 8;
 % Display the forward values
 fprintf('Forward Values:\n');
 % Print the header row with years
-header = ['     ', repmat(['%', num2str(columnWidth), 's '], 1, size(E_FV, 2))];
-fprintf(header, '1 year', '2 year', '3 year', '4 year', '5 year');
+header = ['     ', repmat(['%', num2str(columnWidth), 's '], 1, size(FV, 2))];
+fprintf(header, 'AAA', 'AA', 'A', 'BBB', 'BB', 'B', 'CCC', 'D');
 fprintf('\n');
-fprintf(['A:   ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(E_FV, 2)), '\n'], E_FV(1, :));
-fprintf(['BBB: ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(E_FV, 2)), '\n'], E_FV(2, :));
-fprintf(['BB:  ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(E_FV, 2)), '\n'], E_FV(3, :));
-fprintf(['B:   ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(E_FV, 2)), '\n'], E_FV(4, :));
-fprintf(['CCC: ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(E_FV, 2)), '\n'], E_FV(5, :));
+fprintf(['A:   ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(FV, 2)), '\n'], FV(1, :));
+fprintf(['BBB: ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(FV, 2)), '\n'], FV(2, :));
+fprintf(['BB:  ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(FV, 2)), '\n'], FV(3, :));
+fprintf(['B:   ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(FV, 2)), '\n'], FV(4, :));
+fprintf(['CCC: ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(FV, 2)), '\n'], FV(5, :));
+fprintf('\n');
+
+% Define the column width for alignment
+columnWidth = 8; 
+
+% Display the forward values
+fprintf('Expected Forward Values:\n');
+% Print the header row with years
+fprintf('\n');
+fprintf(['A:   ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(E_FV, 1)), '\n'], E_FV(1));
+fprintf(['BBB: ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(E_FV, 1)), '\n'], E_FV(2));
+fprintf(['BB:  ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(E_FV, 1)), '\n'], E_FV(3));
+fprintf(['B:   ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(E_FV, 1)), '\n'], E_FV(4));
+fprintf(['CCC: ', repmat(['%', num2str(columnWidth), '.4f '], 1, size(E_FV, 1)), '\n'], E_FV(5));
 
 %questi sono i PV at today di un bond AAA,AA,A,ecc...
 %% 
 % calculate the treshold for every rating class
- barriers = zeros(numRatings - 1, numRatings);
+barriers = zeros(numRatings - 1, numRatings);
 cumulativeProb = 0;
 for i = 1:numRatings - 1 %righe
     cumulativeProb = 0;
