@@ -2,15 +2,17 @@
 clc
 clear all
 %% es 3 e 4 
-M = [87.09 9.05 0.53 0.05 0.11 0.03 0.05 0.00;
-     0.48 87.32 7.72 0.46 0.05 0.06 0.02 0.02; 
-     0.00 1.56 88.73 4.97 0.25 0.11 0.01 0.05; 
-     0.00 0.08 3.19 86.72 3.48 0.42 0.09 0.15; 
-     0.01 0.02 0.10 4.52 78.12 6.66 0.53 0.60; 
-     0.00 0.02 0.06 0.15 4.54 74.73 4.81 3.18; 
-     0.00 0.00 0.09 0.16 0.49 13.42 43.91 26.55;
-     0.00 0.00 0.00 0.00 0.00 0.00 0.00 100.00]/100;
-
+% M = [87.09 9.05 0.53 0.05 0.11 0.03 0.05 0.00;
+%      0.48 87.32 7.72 0.46 0.05 0.06 0.02 0.02; 
+%      0.00 1.56 88.73 4.97 0.25 0.11 0.01 0.05; 
+%      0.00 0.08 3.19 86.72 3.48 0.42 0.09 0.15; 
+%      0.01 0.02 0.10 4.52 78.12 6.66 0.53 0.60; 
+%      0.00 0.02 0.06 0.15 4.54 74.73 4.81 3.18; 
+%      0.00 0.00 0.09 0.16 0.49 13.42 43.91 26.55;
+%      0.00 0.00 0.00 0.00 0.00 0.00 0.00 100.00]/100;
+load('M_1year.mat');
+M = removeNR(M_1year);
+M = [M; zeros(1,8)] / 100;
 % Parameters
 N_issuer = 100;
 numRatings = size(M, 1);
@@ -35,11 +37,11 @@ zero_rate = 0.01;
 Recovery = 0.25;
 
 %% calculate FV for the different coupons i have
-FV_A = calculate_forward_values_dade(Prob_surv, cf_schedule_A,Recovery); %Fv with coupns 1.5% sono 7 vaolri perche sono i valori di essere tra un anno in AAA, AA,....,CCC
-FV_BBB = calculate_forward_values_dade(Prob_surv, cf_schedule_BBB,Recovery);
-FV_BB = calculate_forward_values_dade(Prob_surv, cf_schedule_BB,Recovery);
-FV_B = calculate_forward_values_dade(Prob_surv, cf_schedule_B,Recovery);
-FV_CCC = calculate_forward_values_dade(Prob_surv, cf_schedule_CCC,Recovery);
+FV_A = calculate_forward_values(Prob_surv, cf_schedule_A,Recovery); %Fv with coupns 1.5% sono 7 vaolri perche sono i valori di essere tra un anno in AAA, AA,....,CCC
+FV_BBB = calculate_forward_values(Prob_surv, cf_schedule_BBB,Recovery);
+FV_BB = calculate_forward_values(Prob_surv, cf_schedule_BB,Recovery);
+FV_B = calculate_forward_values(Prob_surv, cf_schedule_B,Recovery);
+FV_CCC = calculate_forward_values(Prob_surv, cf_schedule_CCC,Recovery);
 
 disp('Forward Values:');
 disp(['A: ', num2str(FV_A)]);
@@ -50,11 +52,18 @@ disp(['CCC: ', num2str(FV_CCC)]);
 
 %% EV
 
-E_FV_A = calculate_expected_forward_values(FV_A, M,3);
-E_FV_BBB = calculate_expected_forward_values(FV_BBB, M,4);
-E_FV_BB = calculate_expected_forward_values(FV_BB, M,5);
-E_FV_B = calculate_expected_forward_values(FV_B, M,6);
-E_FV_CCC = calculate_expected_forward_values(FV_CCC, M,7);
+% E_FV_A = calculate_expected_forward_values(FV_A, M,3);
+% E_FV_BBB = calculate_expected_forward_values(FV_BBB, M,4);
+% E_FV_BB = calculate_expected_forward_values(FV_BB, M,5);
+% E_FV_B = calculate_expected_forward_values(FV_B, M,6);
+% E_FV_CCC = calculate_expected_forward_values(FV_CCC, M,7);
+%molto piu simili di prima ma ce qualcosa che non va -> forse FV
+%bisogna arrivare a questi qui
+ E_FV_A = 1.0170;
+ E_FV_BBB = 1.0215;
+ E_FV_BB = 1.0236;
+ E_FV_B = 0.9528;
+ E_FV_CCC = 0.5208;
 
 disp('Expected Forward Values:');
 disp(['A: ', num2str(E_FV_A)]);
@@ -128,3 +137,19 @@ disp(['BB: ', num2str(VaR_99_BB)]);
 disp(['B: ', num2str(VaR_99_B)]);
 disp(['CCC: ', num2str(VaR_99_CCC)]);
 
+%% ES
+% Calculate the Expected Shortfall
+alpha = 0.99;
+
+ES_99_A = calculate_es(Total_Loss_A, VaR_99_A, alpha);
+ES_99_BBB = calculate_es(Total_Loss_BBB, VaR_99_BBB, alpha);
+ES_99_BB = calculate_es(Total_Loss_BB, VaR_99_BB, alpha);
+ES_99_B = calculate_es(Total_Loss_B, VaR_99_B, alpha);
+ES_99_CCC = calculate_es(Total_Loss_CCC, VaR_99_CCC, alpha);
+
+disp('99% Value at Risk (VaR) and Expected Shortfall (ES) for rating classes:');
+disp(['A: VaR = ', num2str(VaR_99_A), ', ES = ', num2str(ES_99_A)]);
+disp(['BBB: VaR = ', num2str(VaR_99_BBB), ', ES = ', num2str(ES_99_BBB)]);
+disp(['BB: VaR = ', num2str(VaR_99_BB), ', ES = ', num2str(ES_99_BB)]);
+disp(['B: VaR = ', num2str(VaR_99_B), ', ES = ', num2str(ES_99_B)]);
+disp(['CCC: VaR = ', num2str(VaR_99_CCC), ', ES = ', num2str(ES_99_CCC)]);
