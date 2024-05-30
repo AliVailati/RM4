@@ -183,10 +183,10 @@ end
 
 %%
 times = 1*(1:15);
-M = arrayfun(@(T) M_avg1y.^T, times, 'UniformOutput', false);
+M = arrayfun(@(T) transition_matrices1yùù.^T, times, 'UniformOutput', false);
 M = cat(3, M{:});
-DefaultDistribution =  M(1:end-1,end,:);
 
+DefaultDistribution =  M(1:end-1,end,:);
 %% Compute the Average 5-year Transition Matrix
 M_avg5y = mean(transition_matrices_5y, 3);
 
