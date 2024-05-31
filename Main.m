@@ -161,7 +161,6 @@ for sim = 1:num_simulations
 end
 
 clear sim
-
 %% Compute the Average 1-year Transition Matrix 
 M_avg1y = mean(transition_matrices1y, 3); 
 
@@ -178,17 +177,15 @@ end
 numIssuers = 1000; 
 issuers = zeros(length(eigenvector2), 1); 
 for ii = 1:length(issuers)
-    issuers(ii) = round(eigenvector2(ii)/sum(eigenvector2)*numIssuers);
+    issuers(ii) = eigenvector2(ii)/sum(eigenvector2)*numIssuers;
 end 
-
-%%
-times = 1*(1:15);
-M = arrayfun(@(T) M_avg1y.^T, times, 'UniformOutput', false);
-M = cat(3, M{:});
-DefaultDistribution =  M(1:end-1,end,:);
+issuers = roundIssuers(issuers, numIssuers); 
+%% Andamento degli issuers assumendo che si parta come il secondo autovettore di AVG1y
+years = 15;
+population = survivedEntities (issuers, years, M_avg1y);
 
 %% Compute the Average 5-year Transition Matrix
-M_avg5y = mean(transition_matrices_5y, 3);
+M_avg5y = mean(transition_matrices5y, 3);
 
 disp('Average 5-year Simulated Transition Matrix:');
 disp(M_avg5y);
@@ -202,7 +199,7 @@ disp(MSE);
 
 clear M_diff
 %% Compare the Default Probabilities
-default_probs_simulated = M_avg(:, end);
+default_probs_simulated = M_avg5y(:, end);
 default_probs_unconditional = M_unconditional(:, end);
 
 % Plot the Default Probabilities
