@@ -173,6 +173,10 @@ if eigenvector2(1) <0
     eigenvector2 = -eigenvector2; %the second eigenvector is the one that simulates the trend of population
 end 
 
+eigenvector2_unconditional = V_1year(:, 2); 
+if eigenvector2_unconditional(1) <0 
+    eigenvector2_unconditional = -eigenvector2_unconditional; %the second eigenvector is the one that simulates the trend of population
+end 
 %% distribuisco 1000 nomi come l'autovettore a un anno
 numIssuers = 1000; 
 issuers = zeros(length(eigenvector2), 1); 
@@ -180,10 +184,19 @@ for ii = 1:length(issuers)
     issuers(ii) = eigenvector2(ii)/sum(eigenvector2)*numIssuers;
 end 
 issuers = roundIssuers(issuers, numIssuers); 
+
+issuersUnconditional = zeros(length(eigenvector2), 1); 
+for ii = 1:length(issuersUnconditional)
+    issuersUnconditional(ii) = eigenvector2_unconditional(ii)/sum(eigenvector2_unconditional)*numIssuers;
+end 
+issuersUnconditional = roundIssuers(issuersUnconditional, numIssuers); 
 %% Andamento degli issuers assumendo che si parta come il secondo autovettore di AVG1y
 years = 15;
 population = survivedEntities (issuers, years, M_avg1y);
-
+populationUnconditional = survivedEntities(issuersUnconditional, years, M_1year);
+%% 
+bar([population, populationUnconditional])
+legend('conditioned', 'unconditional');
 %% Compute the Average 5-year Transition Matrix
 M_avg5y = mean(transition_matrices5y, 3);
 
@@ -191,7 +204,7 @@ disp('Average 5-year Simulated Transition Matrix:');
 disp(M_avg5y);
 
 %% MSE between simulated and unconditional 
-M_diff = M_unconditional-M_avg; 
+M_diff = M_unconditional-M_avg5y; 
 M_diff = M_diff.^2; 
 MSE = mean(M_diff(:)); 
 disp ('The MSE between the unconditional one and the simulated is:'); 
