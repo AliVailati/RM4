@@ -123,6 +123,8 @@ steps_per_year = 4; % quarterly steps in a year
 total_years = 5;
 num_simulations = 10000;
 num_ratings = 8;
+numIssuers = 1000; 
+years = 15;
 
 %% Add row for default and remove NR 
 %In this case removeNR is useful to have all the row summing up to 100
@@ -154,15 +156,37 @@ for sim = 1:num_simulations
 end
 
 transition_matrices1y = zeros(num_ratings, num_ratings, num_simulations); % I need a 3d matrix -> 3rd dim the simulations
-
+eigenvector2_unconditional = V_1year(:, 2); 
+if eigenvector2_unconditional(1) <0 
+    eigenvector2_unconditional = -eigenvector2_unconditional; %the second eigenvector is the one that simulates the trend of population
+end 
+issuersUnconditional = zeros(length(eigenvector2), 1); 
+for ii = 1:length(issuersUnconditional)
+    issuersUnconditional(ii) = eigenvector2_unconditional(ii)/sum(eigenvector2_unconditional)*numIssuers;
+end 
+issuers = zeros(length(eigenvector2_unconditional), num_simulations);
+issuersUnconditional = roundIssuers(issuersUnconditional, numIssuers); 
+populationUnconditional = survivedEntities(issuersUnconditional, years, M_1year);
+population = zeros(size(issuers));
+%%
 % Compute the Transition Matrices for each Simulation
 for sim = 1:num_simulations
     transition_matrices1y(:, :, sim) = computeTransitionMatrix(state_paths_1y(sim, :), num_ratings, Me, Mc);
+    transition_matrices1y(:, :, sim) = removeNR(transition_matrices1y(:, :, sim));
+    transition_matrices1y(:, :, sim) = transition_matrices1y(:, :, sim)./sum(transition_matrices1y(:, :, sim),2);
+    secondEig = second(transition_matrices1y(:, :, sim)); 
+    for ii = 1:size(issuers, 1)
+        issuers(ii, sim) = secondEig(ii)/sum(secondEig)*numIssuers;
+    end 
+    issuers(:, sim) = roundIssuers(issuers(:, sim), numIssuers); 
+    population(:, sim) = survivedEntities (issuers(:, sim), years, transition_matrices1y(:, :, sim));
 end
-
-clear sim
+population_avg = mean(population, 2); 
+population_avg = roundIssuers(population_avg, round(sum(population_avg)));
 %% Compute the Average 1-year Transition Matrix 
 M_avg1y = mean(transition_matrices1y, 3); 
+M_avg1y = removeNR(M_avg1y);
+M_avg1y = M_avg1y./sum(M_avg1y,2);
 
 [V_1year_sim,D_1year_sim] = eig(M_avg1y);
 [D_1year_sim,ind_1year_sim] = sort(diag(D_1year_sim),'descend');
@@ -172,31 +196,18 @@ eigenvector2 = V_1year_sim(:, 2);
 if eigenvector2(1) <0 
     eigenvector2 = -eigenvector2; %the second eigenvector is the one that simulates the trend of population
 end 
-
-eigenvector2_unconditional = V_1year(:, 2); 
-if eigenvector2_unconditional(1) <0 
-    eigenvector2_unconditional = -eigenvector2_unconditional; %the second eigenvector is the one that simulates the trend of population
-end 
 %% distribuisco 1000 nomi come l'autovettore a un anno
-numIssuers = 1000; 
 issuers = zeros(length(eigenvector2), 1); 
 for ii = 1:length(issuers)
     issuers(ii) = eigenvector2(ii)/sum(eigenvector2)*numIssuers;
 end 
 issuers = roundIssuers(issuers, numIssuers); 
-
-issuersUnconditional = zeros(length(eigenvector2), 1); 
-for ii = 1:length(issuersUnconditional)
-    issuersUnconditional(ii) = eigenvector2_unconditional(ii)/sum(eigenvector2_unconditional)*numIssuers;
-end 
-issuersUnconditional = roundIssuers(issuersUnconditional, numIssuers); 
 %% Andamento degli issuers assumendo che si parta come il secondo autovettore di AVG1y
-years = 15;
-population = survivedEntities (issuers, years, M_avg1y);
+population_1 = survivedEntities (issuers, years, M_avg1y);
 populationUnconditional = survivedEntities(issuersUnconditional, years, M_1year);
 %% 
-bar([population, populationUnconditional])
-legend('conditioned', 'unconditional');
+bar([population_1, population_avg, populationUnconditional])
+legend('mean', 'conditioned', 'unconditional');
 %% Compute the Average 5-year Transition Matrix
 M_avg5y = mean(transition_matrices5y, 3);
 
